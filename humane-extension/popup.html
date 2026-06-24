@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HUMANE Authenticator</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --dark: #0a0e1a; --card: #111627; --gold: #C9A84C;
+  --gold-dim: rgba(201,168,76,0.12); --gold-border: rgba(201,168,76,0.25);
+  --teal: #2DD4BF; --text: #F0EDE6; --text-dim: #9A9690;
+  --muted: #4a6070; --border: rgba(255,255,255,0.07);
+  --green: #52B788; --red: #FCA5A5; --red-dim: rgba(239,68,68,0.1);
+}
+html { width: 320px; }
+body {
+  width: 320px; min-height: 400px;
+  background: var(--dark); color: var(--text);
+  font-family: -apple-system, 'Inter', sans-serif;
+  font-size: 14px; line-height: 1.5;
+}
+
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.header-logo { display: flex; align-items: center; gap: 8px; }
+.header-title { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: var(--text); }
+.header-status { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; }
+.dot-active { background: var(--green); }
+.dot-inactive { background: var(--muted); }
+
+/* Schermen */
+.screen { display: none; padding: 18px; }
+.screen.active { display: block; }
+
+/* Identity card */
+.id-card {
+  background: var(--card);
+  border: 1px solid var(--gold-border);
+  border-left: 3px solid var(--gold);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.id-label { font-size: 9px; letter-spacing: 0.2em; color: var(--gold); margin-bottom: 6px; }
+.id-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.id-did { font-family: monospace; font-size: 10px; color: var(--muted); word-break: break-all; line-height: 1.5; }
+
+/* Confirm card */
+.confirm-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+.confirm-icon { font-size: 28px; margin-bottom: 10px; }
+.confirm-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.confirm-sub { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+.confirm-site { font-size: 13px; color: var(--gold); font-weight: 500; margin-top: 8px; }
+
+/* Inputs */
+.input {
+  width: 100%; padding: 11px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text);
+  font-size: 14px; outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 10px;
+}
+.input:focus { border-color: rgba(201,168,76,0.4); }
+.input-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.04em; }
+
+/* Buttons */
+.btn {
+  width: 100%; padding: 11px;
+  border-radius: 8px; font-size: 13px;
+  font-weight: 600; cursor: pointer;
+  border: none; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-bottom: 8px;
+}
+.btn-primary { background: linear-gradient(135deg, var(--gold), #a07820); color: #0a0e1a; }
+.btn-primary:hover { opacity: 0.9; }
+.btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
+.btn-secondary:hover { background: rgba(255,255,255,0.03); color: var(--text); }
+.btn-danger { background: transparent; border: 1px solid rgba(239,68,68,0.2); color: var(--red); }
+.btn-danger:hover { background: var(--red-dim); }
+.btn-sm { width: auto; padding: 7px 14px; font-size: 12px; margin-bottom: 0; }
+
+/* Menu */
+.menu { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
+.menu-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 8px;
+  cursor: pointer; transition: background 0.15s;
+  font-size: 13px; color: var(--text-dim);
+  border: none; background: transparent; text-align: left; width: 100%;
+}
+.menu-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.menu-item-icon { width: 18px; text-align: center; flex-shrink: 0; }
+
+/* Alert */
+.alert { padding: 10px 12px; border-radius: 8px; font-size: 12px; line-height: 1.5; margin-bottom: 12px; }
+.alert-success { background: rgba(82,183,136,0.1); border: 1px solid rgba(82,183,136,0.2); color: var(--green); }
+.alert-error { background: var(--red-dim); border: 1px solid rgba(239,68,68,0.2); color: var(--red); }
+.alert-info { background: var(--gold-dim); border: 1px solid var(--gold-border); color: var(--gold); }
+
+/* Footer nav */
+.footer-nav {
+  display: flex; border-top: 1px solid var(--border);
+  position: sticky; bottom: 0; background: var(--dark);
+}
+.footer-nav-btn {
+  flex: 1; padding: 12px 8px; font-size: 11px;
+  color: var(--muted); cursor: pointer;
+  border: none; background: transparent;
+  transition: color 0.2s; display: flex;
+  flex-direction: column; align-items: center; gap: 3px;
+}
+.footer-nav-btn:hover, .footer-nav-btn.active { color: var(--gold); }
+.footer-nav-icon { font-size: 15px; }
+
+/* Divider */
+.divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+/* Empty state */
+.empty { text-align: center; padding: 24px 16px; }
+.empty-icon { font-size: 32px; opacity: 0.3; margin-bottom: 12px; }
+.empty-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.empty-sub { font-size: 12px; color: var(--text-dim); line-height: 1.6; margin-bottom: 16px; }
+
+.version { text-align: center; font-size: 10px; color: var(--muted); padding: 8px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-logo">
+    <svg width="20" height="20" viewBox="0 0 28 28" fill="none">
+      <path d="M20 5 A11 11 0 1 0 20 23" stroke="#C9A84C" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <circle cx="20" cy="5" r="3" fill="#C9A84C"/>
+      <circle cx="20" cy="23" r="3" fill="#C9A84C"/>
+    </svg>
+    <span class="header-title">HUMANE</span>
+  </div>
+  <div class="header-status" id="header-status">
+    <div class="dot dot-inactive" id="status-dot"></div>
+    <span id="status-text">Laden...</span>
+  </div>
+</div>
+
+<!-- ── SCHERM: Home ── -->
+<div class="screen active" id="screen-home">
+  <div id="home-content">
+    <!-- Dynamisch gevuld -->
+  </div>
+</div>
+
+<!-- ── SCHERM: Bevestigen ── -->
+<div class="screen" id="screen-confirm">
+  <div class="confirm-card">
+    <div class="confirm-icon">✦</div>
+    <div class="confirm-title">Inloggen bevestigen</div>
+    <div class="confirm-sub">
+      Wil je inloggen bij
+      <div class="confirm-site" id="confirm-site">...</div>
+    </div>
+  </div>
+
+  <div class="id-card" style="margin-bottom:16px">
+    <div class="id-label">JOUW DID</div>
+    <div class="id-did" id="confirm-did">...</div>
+  </div>
+
+  <div class="input-label">Voer je wachtwoord in om te bevestigen</div>
+  <input type="password" class="input" id="confirm-passphrase" placeholder="Jouw wachtwoord...">
+  <div id="confirm-error" class="alert alert-error" style="display:none"></div>
+
+  <button class="btn btn-primary" id="btn-confirm-sign">✓ Bevestigen en inloggen</button>
+  <button class="btn btn-secondary" id="btn-confirm-cancel">Annuleren</button>
+</div>
+
+<!-- ── SCHERM: Nieuwe identiteit ── -->
+<div class="screen" id="screen-create">
+  <div style="margin-bottom:16px">
+    <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Nieuwe identiteit aanmaken</div>
+    <div style="font-size:12px;color:var(--text-dim);line-height:1.6">Je privésleutel wordt aangemaakt en veilig opgeslagen in deze extensie. Hij verlaat je device nooit.</div>
+  </div>
+
+  <div class="input-label">Naam (optioneel)</div>
+  <input type="text" class="input" id="create-label" placeholder="Bijv. Mijn HUMANE identiteit">
+
+  <div class="input-label">Wachtwoord</div>
+  <input type="password" class="input" id="create-passphrase" placeholder="Minimaal 8 tekens...">
+
+  <div class="input-label">Bevestig wachtwoord</div>
+  <input type="password" class="input" id="create-passphrase-confirm" placeholder="Herhaal wachtwoord...">
+
+  <div id="create-error" class="alert alert-error" style="display:none"></div>
+  <div id="create-success" class="alert alert-success" style="display:none"></div>
+
+  <button class="btn btn-primary" id="btn-create">Identiteit aanmaken</button>
+  <button class="btn btn-secondary" id="btn-create-cancel">Terug</button>
+</div>
+
+<!-- ── SCHERM: Importeren ── -->
+<div class="screen" id="screen-import">
+  <div style="margin-bottom:16px">
+    <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Identiteit importeren</div>
+    <div style="font-size:12px;color:var(--text-dim);line-height:1.6">Importeer een bestaande HUMANE identiteit via een backup bestand.</div>
+  </div>
+
+  <div class="input-label">Backup bestand (.json)</div>
+  <input type="file" accept=".json" id="import-file" style="width:100%;padding:10px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;color:var(--text-dim);font-size:12px;margin-bottom:10px">
+
+  <div class="input-label">Wachtwoord</div>
+  <input type="password" class="input" id="import-passphrase" placeholder="Wachtwoord van het backup bestand...">
+
+  <div id="import-error" class="alert alert-error" style="display:none"></div>
+  <div id="import-success" class="alert alert-success" style="display:none"></div>
+
+  <button class="btn btn-primary" id="btn-import">Importeren</button>
+  <button class="btn btn-secondary" id="btn-import-cancel">Terug</button>
+</div>
+
+<!-- ── SCHERM: Instellingen ── -->
+<div class="screen" id="screen-settings">
+  <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:16px">Instellingen</div>
+  <div class="menu">
+    <button class="menu-item" id="btn-export">
+      <span class="menu-item-icon">⬇</span> Backup downloaden
+    </button>
+    <button class="menu-item" id="btn-goto-import">
+      <span class="menu-item-icon">⬆</span> Identiteit importeren
+    </button>
+    <button class="menu-item" id="btn-goto-humane" style="color:var(--gold)">
+      <span class="menu-item-icon">🌐</span> humaneworld.network
+    </button>
+  </div>
+  <div class="divider"></div>
+  <button class="menu-item btn-danger" id="btn-delete" style="color:var(--red);width:100%">
+    <span class="menu-item-icon">✕</span> Identiteit verwijderen
+  </button>
+  <div class="version">HUMANE Authenticator v0.1.0</div>
+</div>
+
+<!-- Footer nav -->
+<div class="footer-nav" id="footer-nav">
+  <button class="footer-nav-btn active" data-screen="home">
+    <span class="footer-nav-icon">✦</span>
+    <span>Identiteit</span>
+  </button>
+  <button class="footer-nav-btn" data-screen="settings">
+    <span class="footer-nav-icon">⚙</span>
+    <span>Instellingen</span>
+  </button>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
